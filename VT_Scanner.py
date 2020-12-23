@@ -66,53 +66,44 @@ if resource == 'd' or resource == 'domain':
 #==========================================================================================#
 # Sending Targets To VirusTotal For scanning
 elif resource == 'i' or resource == 'ip' or resource == 'ip_address':
-    ips = open("ips.txt", "r")                                                    ## make sure you have this file existing 
-    for ip in ips:
-        if validators.ipv4(ip.rstrip('\n')) == True:
-            url = 'https://www.virustotal.com/vtapi/v2/url/scan'
-            params = {'apikey': api_key, 'url': ip}
-            response = client.post(url, params=params)
-            if response.status_code == 200:
-                json_response = response.json()
-                #print("=> Scanning... " + ip )
-                time.sleep(15)                                                                # <= this delay because the public API has only (4) requests/minute
-                if json_response['response_code'] != 1:                                               ## If You Have A Private API Key Change It To (1) ##
-                    print('There was an error submitting the ip_address for scanning.')
-                    print(json_response['verbose_msg'])
-                else:
-                    pass
-            elif response.status_code == 204:
-                print('You may have exceeded your API request quota, try again later.')
-                break
-            elif response.status_code == 403:
-                print('Check Your API Key Please.')
-                break
-            #end_of_scanner and getting a fresh report
-            def ip_report(ip):
-                url = 'https://www.virustotal.com/vtapi/v2/url/report'
-                params = {'apikey': api_key, 'resource': ip}
-                response = client.post(url, params=params)
-                time.sleep(15)
-                if response.status_code == 200:
-                    json_response = response.json()
-                    if json_response['response_code'] == 1:
-                        pass
-                    else:
-                        print('There was an error submitting the ip_address for scanning.')
-                    positives = json_response['positives']
-                    if positives == 0:
-                        result = ' => Clean'
-                    else:
-                        result = ' => Malicious'                                   # a single detection qualifies for malicious
-                    print(ip.rstrip('\n') + result)
-                elif response.status_code == 204:
-                    print('You may have exceeded your API request quota, try again later.')
-            ip_report(ip)
-        else:
+    def ipScaner():
+        ips = open("ips.txt", "r")                                      ## make sure you have this file existing
+        i = 0
+        for ip in ips:
+            i+=1
             if ip.rstrip('\n') == '':
+                i-=1
                 continue
+            while i%5 == 0:
+                # #### waiting because of quota limitation ####                          # <= this delay because the public API has only (4) requests/minute
+                time.sleep(60)                                                                    ## If You Have A Private API Key Change It To (1) ## 
+                i+=1
             else:
-                print(ip.rstrip('\n') + " => invalid\n")
+                if validators.ipv4(ip.rstrip('\n')) == True:
+                    url = 'https://www.virustotal.com/vtapi/v2/url/report'
+                    params = {'apikey': api_key, 'resource' : ip}
+                    response = requests.get(url, params=params)
+                    if response.status_code == 200:
+                        json_response = response.json()
+                        if json_response['response_code'] == 1:
+                            pass
+                        else:
+                            print('There was an error submitting the IP address for scanning.')
+                        positives = json_response['positives']
+                        if positives == 0:
+                            result = ' => Clean'
+                        else:
+                            result = ' => Malicious'                           # a single detection qualifies for malicious
+                        print(ip.rstrip('\n') + result)
+                    elif response.status_code == 204:
+                        print('You may have exceeded your API request quota, try again later.')
+                        break
+                    elif response.status_code == 403:
+                        print('Check Your API Key Please.')
+                        break
+                else:                                                   
+                    print(ip.rstrip('\n') + " => invalid\n")
+    ipScaner()
 #==========================================================================================#
 #hash_scan
 elif resource == 'f' or resource == 'hash' or resource == 'file_hash' or resource == 'file' or resource == 'h':
@@ -125,7 +116,7 @@ elif resource == 'f' or resource == 'hash' or resource == 'file_hash' or resourc
                 i-=1
                 continue
             while i%5 == 0:
-                print("\n#### waiting because of quota limitation ####\n")                 # <= this delay because the public API has only (4) requests/minute
+                # #### waiting because of quota limitation ####                          # <= this delay because the public API has only (4) requests/minute
                 time.sleep(60)                                                                   ## If You Have A Private API Key Change It To (1) ##                                                         
                 i+=1
             else:
@@ -157,43 +148,52 @@ elif resource == 'f' or resource == 'hash' or resource == 'file_hash' or resourc
 #==========================================================================================#
 #url_scan
 elif resource == 'u' or resource == 'url':
-    def urlScaner():
-        urls = open("urls.txt", "r")                                      ## make sure you have this file existing
-        i = 0
-        for uri in urls:
-            i+=1
+    # Sending Targets To VirusTotal For scanning
+    urls = open("urls.txt", "r")                                     ## make sure you have this file existing  ## you can change the file path as you wish
+    for uri in urls:
+        if validators.url(uri) == True:
+            url = 'https://www.virustotal.com/vtapi/v2/url/scan'
+            params = {'apikey': api_key, 'url': uri}
+            response = client.post(url, params=params)
+            if response.status_code == 200:
+                json_response = response.json()
+                time.sleep(15)                                             # <= this delay because the public API has only (4) requests/minute
+                if json_response['response_code'] != 1:                             ## If You Have A Private API Key Change It To (1) ##
+                    print('There was an error submitting your URL for scanning.')
+                    print(json_response['verbose_msg'])
+                else:
+                    pass
+            elif response.status_code == 204:
+                print('You may have exceeded your API request quota, try again later.')
+                break
+            elif response.status_code == 403:
+                print('Check Your API Key Please.')
+                break
+            #end_of_scanner and getting a fresh report
+            def Url_Report(uri):
+                url = 'https://www.virustotal.com/vtapi/v2/url/report'
+                params = {'apikey': api_key, 'resource': uri}
+                response = client.post(url, params=params)
+                time.sleep(15)
+                if response.status_code == 200:
+                    json_response = response.json()
+                    if json_response['response_code'] == 1:
+                        pass
+                    else:
+                        print('There was an error submitting your URL for scanning.')
+                    positives = json_response['positives']
+                    if positives == 0:
+                        result = ' => Clean'
+                    else:
+                        result = ' => Malicious'                                # a single detection qualifies for malicious
+                    print(uri.rstrip('\n') + result)
+                elif response.status_code == 204:
+                    print('You may have exceeded your API request quota, try again later.')
+            Url_Report(uri)
+        else:
             if uri.rstrip('\n') == '':
-                i-=1
                 continue
-            while i%5 == 0:
-                print("\n#### waiting because of quota limitation ####\n")                  # <= this delay because the public API has only (4) requests/minute
-                time.sleep(60)                                                                    ## If You Have A Private API Key Change It To (1) ## 
-                i+=1
             else:
-                if validators.url(uri) == True:
-                    url = 'https://www.virustotal.com/vtapi/v2/url/report'
-                    params = {'apikey': api_key, 'resource' : uri}
-                    response = requests.get(url, params=params)
-                    if response.status_code == 200:
-                        json_response = response.json()
-                        if json_response['response_code'] == 1:
-                            pass
-                        else:
-                            print('There was an error submitting the URL for scanning.')
-                        positives = json_response['positives']
-                        if positives == 0:
-                            result = ' => Clean'
-                        else:
-                            result = ' => Malicious'                           # a single detection qualifies for malicious
-                        print(uri.rstrip('\n') + result)
-                    elif response.status_code == 204:
-                        print('You may have exceeded your API request quota, try again later.')
-                        break
-                    elif response.status_code == 403:
-                        print('Check Your API Key Please.')
-                        break
-                else:                                                   # [Example]  http[s]://www.example.com or http[s]://example.com
-                    print(uri + " => invalid\n")
-    urlScaner()
+                print(uri.rstrip('\n') + " => invalid\n")
 else:    
     resource = input(str("IP_address(I), Domain(D), File_Hash(F), URL(U) ")).lower()
